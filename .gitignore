@@ -5,3 +5,4 @@ example_outputs
 *.key
 *.pem
 
+.env

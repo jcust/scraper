@@ -5,6 +5,8 @@ import time
 import argparse
 import data_sources.polygon as pg
 
+from web3.exceptions import ABIFunctionNotFound
+
 
 def parser_args():
     parser = argparse.ArgumentParser(description="Smart contract scraper")
@@ -60,6 +62,14 @@ def parser_args():
         const="f",
         help="get functions found in one or more contract's source code",
     )
+    group.add_argument(
+        "-u",
+        "--usable",
+        action="store_const",
+        dest="opts",
+        const="u",
+        help="return only contracts that have remaining mintable supply and aren't whitelist only",
+    )
     # TODO: save to file
     # parser.add_argument("-o", "--output", metavar="PATH", help="save output to a file")
 
@@ -69,11 +79,26 @@ def parser_args():
 def main():
     args = parser_args()
 
-    # set api key
+    if os.getenv("NODE_API_KEY"):
+        NODE_API_KEY = os.getenv("NODE_API_KEY")
+    else:
+        print(f"Missing node API key, recommend setting NODE_API_KEY env var.\n")
+        NODE_API_KEY = input("Enter node API key:\n")
+
+    if os.getenv("NODE_ENDPOINT"):
+        NODE_ENDPOINT = os.getenv("NODE_ENDPOINT")
+    else:
+        NODE_ENDPOINT = "https://polygon-mainnet.g.alchemy.com/v2/"
+
     if args.api_key:
         API_KEY = args.api_key
-    else:
+    elif os.getenv("POLYGON_API_KEY"):
         API_KEY = os.getenv("POLYGON_API_KEY")
+    else:
+        print(
+            f"Missing PolygonScan API key, recommend setting POLYGON_API_KEY env var.\n"
+        )
+        API_KEY = input("Enter PolygonScan API key:\n")
 
     # get list of contract addresses to query
     if args.contract:
@@ -116,6 +141,56 @@ def main():
             print("\n")
         elif args.opts == "s":
             print(f"{source}\n")
+        elif args.opts == "u":
+            abi = result["ABI"]
+            whitelist_terms = [
+                "onlywhitelist",
+                "onlywhitelisted",
+                "whitelistonly",
+                "whitelistedonly",
+                "onlyallowlist",
+                "onlyallowlisted",
+                "allowlistonly",
+                "allowlistedonly",
+            ]
+            # supply = {"totalSupply": "", "maxSupply": "", "supply": ""}
+            supply_terms = ["totalSupply", "maxSupply", "supply"]
+            supply = []
+
+            # check source code for strings in whitelist_terms
+            if any(wl in whitelist_terms for wl in source):
+                print(f"whitelist term found in ADDRESS {address}, skipping.")
+                continue
+
+            # check supply vars
+            contract = pg.Contract(address, abi, NODE_ENDPOINT, NODE_API_KEY)
+            # for k in supply:
+            #     supply[k] = contract.call_func(k)
+            #     print(f"{k}: {supply[k]}")
+
+            for s in supply_terms:
+                try:
+                    v = contract.call_func(s)
+                    supply.append(v)
+                    print(f"{s}: {v}")
+                except ABIFunctionNotFound:
+                    print(f"function {s} not present in contract")
+                    pass
+
+            try:
+                if supply[0] == supply[1]:
+                    print(
+                        f"supply parameter values are the same, assuming no supply remaining."
+                    )
+                    print("max supply has been reached, skipping.")
+                    continue
+            except IndexError:
+                print(
+                    f"MANUAL CHECK NEEDED: contract {address} contains less than two of the defined 'supply' variables, can't determine if usable"
+                )
+                continue
+
+            print(f"USABLE CONTRACT: ADDRESS {address}\n")
 
 
 if __name__ == "__main__":
