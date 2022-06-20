@@ -5,6 +5,7 @@ python script for getting verified contracts from polygonscan.com and filtering 
 ## requirements
 - python3 (tested on 3.8.10)
 - polygonscan API key: https://polygonscan.com/apis
+- access to a polygon node API and API key (tested with https://www.alchemy.com)
 
 ## setup
 after cloning repo:
@@ -13,6 +14,8 @@ after cloning repo:
 pip install -r requirements.txt
 chmod +x contract_scraper.py (if needed)
 export POLYGON_API_KEY=api_key_here
+export NODE_API_KEY=node_api_key_here
+export NODE_ENDPOINT=node_endpoint_here (default: https://polygon-mainnet.g.alchemy.com/v2/)
 ```
 
 ## usage
@@ -39,6 +42,8 @@ optional arguments:
                         addresses
   -f, --functions       get functions found in one or more contract's
                         source code
+  -u, --usable          return only contracts that have remaining mintable
+                        supply and aren't whitelist only
 ```
 
 ## examples
@@ -133,4 +138,61 @@ $$ | \_/ $$ |$$$$$$$$\ $$$$$$$$\ $$ | \$$\ $$$$$$$  | $$$$$$  |\$$$$$$  |      \
 
 
 // OpenZeppelin Contracts v4.4.1 (utils/Context.sol)
+```
+
+### filter through usable verified contracts - usable meaning: no whitelist term found in contract, and supply isn't maxed (or needs to be manually verified)
+```
+$ ./contract_scraper.py -u
+no contract addresses specified, retrieving verified contracts
+
+ADDRESS 0x120495343e8d59Ff21c7f5aFcdAaabD3B061Ab6c (NAME: wtfmoon)
+
+totalSupply: 0
+function maxSupply not present in contract
+function supply not present in contract
+MANUAL CHECK NEEDED: contract 0x120495343e8d59Ff21c7f5aFcdAaabD3B061Ab6c contains less than two of the defined 'supply' variables, can't determine if usable
+
+ADDRESS 0x2A7706Fc7cC560EaD651CD39713015491c3e941F (NAME: KtmFinance)
+
+totalSupply: 10000000000000000000000000
+function maxSupply not present in contract
+function supply not present in contract
+MANUAL CHECK NEEDED: contract 0x2A7706Fc7cC560EaD651CD39713015491c3e941F contains less than two of the defined 'supply' variables, can't determine if usable
+
+ADDRESS 0x679e23631670f940462f78091680e3fbb6b53cac (NAME: Primates_wtf)
+
+totalSupply: 71
+maxSupply: 10000
+function supply not present in contract
+USABLE CONTRACT: ADDRESS 0x679e23631670f940462f78091680e3fbb6b53cac
+
+
+ADDRESS 0xDC2F54190FC5f31Cb847CB535B3BAf57e5C32d8c (NAME: VeryLongTown)
+
+function totalSupply not present in contract
+function maxSupply not present in contract
+function supply not present in contract
+MANUAL CHECK NEEDED: contract 0xDC2F54190FC5f31Cb847CB535B3BAf57e5C32d8c contains less than two of the defined 'supply' variables, can't determine if usable
+
+ADDRESS 0x3661B2A603162121E45fbCf82A6F016a78552BaF (NAME: OpenversePass)
+
+function totalSupply not present in contract
+function maxSupply not present in contract
+function supply not present in contract
+MANUAL CHECK NEEDED: contract 0x3661B2A603162121E45fbCf82A6F016a78552BaF contains less than two of the defined 'supply' variables, can't determine if usable
+
+ADDRESS 0x31c614d73c5e828dddf7a1abd1a182da850917ab (NAME: PPR_Polygon)
+
+totalSupply: 21
+maxSupply: 5040
+function supply not present in contract
+USABLE CONTRACT: ADDRESS 0x31c614d73c5e828dddf7a1abd1a182da850917ab
+
+
+ADDRESS 0xF7818DA260520dDb9719f9996A23aA3225F6298F (NAME: GeomePoly)
+
+totalSupply: 1
+maxSupply: 15625
+function supply not present in contract
+USABLE CONTRACT: ADDRESS 0xF7818DA260520dDb9719f9996A23aA3225F6298F
 ```
