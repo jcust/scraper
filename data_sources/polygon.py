@@ -47,23 +47,39 @@ class Contract:
 
 
 def get_verified_contracts(
-    host: IdxApi = IdxApi.VCON, pages: int = 5, records: int = 100
+    host: IdxApi = IdxApi.VCON, pages: int = 10, records: int = 50
 ) -> str:
+    headers = {
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.5005.115 Safari/537.36"
+    }
+    session = requests.Session()
     for page in range(1, pages + 1):
-        response = requests.get(f"{host}/{page}?ps={records}").text
+        # print(f"getting page {page} from verifiedcontracts page")
+        response = session.get(
+            f"{host}/{page}?ps={records}", timeout=15, headers=headers
+        ).text
+        # print(f"got page {page} from verifiedcontracts page")
         soup = BeautifulSoup(response, "html.parser")
         rows = soup.select("tbody tr")
+        row_count = 0
         for row in rows:
+            row_count += 1
+            # print(f"parsing row {row_count}")
             contract = row.find_all("td")
             name = contract[1].text.strip()
             address = contract[0].text.strip()
+            # print(f"finished parsing row {row_count}")
             yield {"contract_name": name, "address": address}
 
 
-def get_contract_details(address: str, api_key: str, host: IdxApi = IdxApi.SCAN):
+def get_contract_details(
+    session: requests.Session, address: str, api_key: str, host: IdxApi = IdxApi.SCAN
+):
     # print("querying url")
-    response = requests.get(
-        f"{host}/api?module=contract&action=getsourcecode&address={address}&apikey={api_key}"
+    session = session
+    response = session.get(
+        f"{host}/api?module=contract&action=getsourcecode&address={address}&apikey={api_key}",
+        timeout=15,
     ).json()
     if response["status"] == "1":
         # print("status is 1")
